@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.1)
 
 project(raytracer C CXX)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra")
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /std:c++latest")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra")
+endif()
 
 # For Clang, increase the max number of constexpr steps. A lot.
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

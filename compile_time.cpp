@@ -17,18 +17,35 @@ using namespace rt;
 
 namespace {
 
+// Constexpr std::array, since MSVC doesn't have this yet
+template <typename T, size_t N>
+struct carray {
+
+    constexpr T* begin() { return arr_; }
+    constexpr T* end() { return arr_ + N; }
+    constexpr const T* begin() const { return arr_; }
+    constexpr const T* end() const { return arr_ + N; }
+
+    constexpr T& operator[](size_t i) { return arr_[i]; }
+    constexpr const T& operator[](size_t i) const { return arr_[i]; }
+
+    constexpr const T* data() const { return arr_; }
+
+    T arr_[N];
+};
+
 struct static_scene {
 private:
-    std::array<any_thing, 3> things_{{
-            plane{{ 0.0, 1.0, 0.0 }, 0.0, surfaces::checkerboard},
-            sphere{{ 0.0, 1.0, -0.25 }, 1.0, surfaces::shiny},
-            sphere{{ -1.0, 0.5, 1.5 }, 0.5, surfaces::shiny}
+    carray<any_thing, 3> things_{{
+            plane{{ 0.0_r, 1.0_r, 0.0_r }, 0.0_r, surfaces::checkerboard},
+            sphere{{ 0.0_r, 1.0_r, -0.25_r }, 1.0_r, surfaces::shiny},
+            sphere{{ -1.0_r, 0.5_r, 1.5_r }, 0.5_r, surfaces::shiny}
     }};
-    std::array<light, 4> lights_{{
-            light{{-2.0, 2.5, 0.0}, {0.49, 0.07, 0.07}},
-            light{{1.5, 2.5, 1.5}, {0.07, 0.07, 0.49}},
-            light{{1.5, 2.5, -1.5}, {0.07, 0.49, 0.071}},
-            light{{0.0, 3.5, 0.0}, {0.21, 0.21, 0.35}}
+    carray<light, 4> lights_{{
+            light{{-2.0_r, 2.5_r, 0.0_r}, {0.49_r, 0.07_r, 0.07_r}},
+            light{{1.5_r, 2.5_r, 1.5_r}, {0.07_r, 0.07_r, 0.49_r}},
+            light{{1.5_r, 2.5_r, -1.5_r}, {0.07_r, 0.49_r, 0.071_r}},
+            light{{0.0_r, 3.5_r, 0.0_r}, {0.21_r, 0.21_r, 0.35_r}}
     }};
     camera cam_{vec3{ 3.0, 2.0, 4.0 }, vec3{ -1.0, 0.5, 0.0 }};
 
@@ -56,9 +73,12 @@ struct static_canvas {
 
 private:
     struct rgba {
+        static constexpr auto clamp(real_t val) {
+            return std::clamp<real_t>(val, 0.0, 1.0);
+        }
+
         static constexpr rgba from_color(const color& col)
         {
-            constexpr auto clamp = [] (real_t val) { return std::clamp<real_t>(val, 0.0, 1.0); };
             return {uint8_t(clamp(col.r) * 255.0),
                     uint8_t(clamp(col.g) * 255.0),
                     uint8_t(clamp(col.b) * 255.0),
@@ -68,19 +88,23 @@ private:
         uint8_t r, g, b, a;
     };
 
-    std::array<rgba, Width * Height> pixels_;
+    carray<rgba, Width * Height> pixels_;
 };
+
+constexpr auto get_image()
+{
+    ray_tracer r{};
+    static_canvas<IMAGE_WIDTH, IMAGE_HEIGHT> c{};
+    const static_scene s{};
+    r.render(s, c, c.width, c.height);
+    return c;
+}
 
 }
 
 int main()
 {
-    constexpr auto image = [] {
-        ray_tracer r{};
-        static_canvas<IMAGE_WIDTH, IMAGE_HEIGHT> c{};
-        r.render(static_scene{}, c, c.width, c.height);
-        return c;
-    }();
+    constexpr auto image = get_image();
     stbi_write_png("render-ct.png", image.width, image.height, 4,
                    image.get_pixels().data(), image.width * image.bpp);
 }

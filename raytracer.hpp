@@ -18,6 +18,11 @@ namespace rt {
 
 using real_t = float;
 
+constexpr real_t operator"" _r(long double val)
+{
+    return static_cast<real_t>(val);
+}
+
 // Constexpr maths functions.
 namespace cmath {
 
@@ -39,7 +44,7 @@ constexpr real_t sqrt(real_t val)
 
     while (curr != prev) {
         prev = curr;
-        curr = 0.5 * (curr + val/curr);
+        curr = 0.5_r * (curr + val/curr);
     }
 
     return curr;
@@ -52,7 +57,7 @@ constexpr real_t floor(real_t val)
     return std::floor(val);
 #else
     // This is wrong for anything outside the range of intmax_t
-    return static_cast<intmax_t>(val >= 0.0 ? val : val - 1.0);
+    return static_cast<real_t>(static_cast<intmax_t>(val >= 0.0 ? val : val - 1.0));
 #endif
 }
 
@@ -103,7 +108,7 @@ constexpr real_t mag(const vec3& v)
 
 constexpr vec3 norm(const vec3& v)
 {
-    return (real_t{1.0} / mag(v)) * v;
+    return (1.0_r / mag(v)) * v;
 }
 
 constexpr vec3 cross(const vec3& v1, const vec3& v2)
@@ -118,8 +123,8 @@ struct color {
     real_t g;
     real_t b;
 
-    static constexpr color white() { return { 1.0, 1.0, 1.0 }; }
-    static constexpr color grey() { return { 0.5, 0.5, 0.5 }; }
+    static constexpr color white() { return { 1.0_r, 1.0_r, 1.0_r }; }
+    static constexpr color grey() { return { 0.5_r, 0.5_r, 0.5_r }; }
     static constexpr color black() { return {}; };
     static constexpr color background() { return black(); }
     static constexpr color default_color() { return black(); }
@@ -149,8 +154,8 @@ struct camera {
     constexpr camera(const vec3& pos, const vec3& look_at)
             : pos{pos},
               forward{norm(look_at - pos)},
-              right{1.5 * norm(cross(forward, {0.0, -1.0, 0.0}))},
-              up{1.5 * norm(cross(forward, right))}
+              right{1.5_r * norm(cross(forward, {0.0_r, -1.0_r, 0.0_r}))},
+              up{1.5_r * norm(cross(forward, right))}
     {}
 };
 
@@ -208,7 +213,7 @@ public:
                 dist = v - cmath::sqrt(disc);
             }
         }
-        if (dist == 0.0) {
+        if (dist == 0.0_r) {
             return std::nullopt;
         } else {
             return intersection{pself, ray_, dist};
@@ -278,6 +283,14 @@ private:
         }
     };
 
+    struct surface_visitor {
+        template <typename Thing>
+        constexpr const surface& operator()(const Thing& thing) const
+        {
+            return thing.get_surface();
+        }
+    };
+
 public:
     template <typename T>
     constexpr any_thing(T&& t) : item_(std::forward<T>(t)) {}
@@ -294,9 +307,7 @@ public:
 
     constexpr const surface& get_surface() const
     {
-        return std::visit([](const auto& thing_) -> decltype(auto) {
-            return thing_.get_surface();
-        }, item_);
+        return std::visit(surface_visitor{}, item_);
     }
 
 private:
@@ -305,29 +316,42 @@ private:
 
 namespace surfaces {
 
-inline constexpr surface shiny{
-        [](const vec3&) { return color::white(); },
-        [](const vec3&) { return color::grey(); },
-        [](const vec3&) { return real_t{0.7}; },
+namespace detail {
+    constexpr color shiny_diffuse(const vec3&) { return color::white(); }
+    constexpr color shiny_specular(const vec3&) { return color::grey(); }
+    constexpr real_t shiny_reflect(const vec3&) { return 0.7_r; }
+
+    constexpr color checkerboard_diffuse(const vec3& pos)
+    {
+        if (int(cmath::floor(pos.z) + cmath::floor(pos.x)) % 2 != 0) {
+            return color::white();
+        } else {
+            return color::black();
+        }
+    }
+    constexpr color checkerboard_specular(const vec3&) { return color::white(); }
+
+    constexpr real_t checkerboard_reflect(const vec3& pos)
+    {
+        if (int(cmath::floor(pos.z) + cmath::floor(pos.x)) % 2 != 0) {
+            return 0.1_r;
+        } else {
+            return 0.7_r;
+        }  
+    }
+}
+
+/*inline*/ constexpr surface shiny{
+        detail::shiny_diffuse,
+        detail::shiny_specular,
+        detail::shiny_reflect,
         250
 };
 
-inline constexpr surface checkerboard{
-        [](const vec3& pos) {
-            if (int(cmath::floor(pos.z) + cmath::floor(pos.x)) % 2 != 0) {
-                return color::white();
-            } else {
-                return color::black();
-            }
-        },
-        [](const vec3&) { return color::white(); },
-        [](const vec3& pos) -> real_t {
-            if (int(cmath::floor(pos.z) + cmath::floor(pos.x)) % 2 != 0) {
-                return 0.1;
-            } else {
-                return 0.7;
-            }
-        },
+/*inline*/ constexpr surface checkerboard{
+        detail::checkerboard_diffuse,
+        detail::checkerboard_specular,
+        detail::checkerboard_reflect,
         150
 };
 
@@ -362,7 +386,8 @@ private:
     template <typename Scene>
     constexpr std::optional<real_t> test_ray(const ray& ray_, const Scene& scene_) const
     {
-        if (const auto isect = get_intersections(ray_, scene_); isect) {
+        const auto isect = get_intersections(ray_, scene_);
+        if (isect) {
             return isect->dist;
         }
         return std::nullopt;
@@ -371,7 +396,8 @@ private:
     template <typename Scene>
     constexpr color trace_ray(const ray& ray_, const Scene& scene_, int depth) const
     {
-        if (const auto isect = get_intersections(ray_, scene_); isect) {
+        const auto isect = get_intersections(ray_, scene_);
+        if (isect) {
             return shade(*isect, scene_, depth);
         }
         return color::background();
@@ -430,8 +456,8 @@ private:
 
     constexpr vec3 get_point(int width, int height, int x, int y, const camera& cam) const
     {
-        const auto recenterX =  (x - (width / 2.0)) / 2.0 / width;
-        const auto recenterY = -(y - (height / 2.0)) / 2.0 / height;
+        const auto recenterX =  (x - (width / 2.0_r)) / 2.0_r / width;
+        const auto recenterY = -(y - (height / 2.0_r)) / 2.0_r / height;
         return norm(cam.forward + ((recenterX * cam.right) + (recenterY * cam.up)));
     }
 

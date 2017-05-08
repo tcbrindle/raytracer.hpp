@@ -12,16 +12,16 @@ namespace {
 
 struct dynamic_scene {
     dynamic_scene()
-            : cam_{vec3{ 3.0, 2.0, 4.0 }, vec3{ -1.0, 0.5, 0.0 }}
+            : cam_{vec3{ 3.0_r, 2.0_r, 4.0_r }, vec3{ -1.0_r, 0.5_r, 0.0_r }}
     {
-        things_.push_back(plane{vec3{ 0.0, 1.0, 0.0 }, 0.0, surfaces::checkerboard});
-        things_.push_back(sphere{vec3{ 0.0, 1.0, -0.25 }, 1.0, surfaces::shiny});
-        things_.push_back(sphere{vec3{ -1.0, 0.5, 1.5 }, 0.5, surfaces::shiny});
+        things_.push_back(plane{vec3{ 0.0_r, 1.0_r, 0.0_r }, 0.0_r, surfaces::checkerboard});
+        things_.push_back(sphere{vec3{ 0.0_r, 1.0_r, -0.25_r }, 1.0_r, surfaces::shiny});
+        things_.push_back(sphere{vec3{ -1.0_r, 0.5_r, 1.5_r }, 0.5_r, surfaces::shiny});
 
-        lights_.push_back(light{ {-2.0, 2.5, 0.0}, {0.49, 0.07, 0.07}});
-        lights_.push_back(light{ {1.5, 2.5, 1.5}, {0.07, 0.07, 0.49} });
-        lights_.push_back(light{ {1.5, 2.5, -1.5}, {0.07, 0.49, 0.071} });
-        lights_.push_back(light{ {0.0, 3.5, 0.0}, {0.21, 0.21, 0.35} });
+        lights_.push_back(light{ {-2.0_r, 2.5_r, 0.0_r}, {0.49_r, 0.07_r, 0.07_r}});
+        lights_.push_back(light{ {1.5_r, 2.5_r, 1.5_r}, {0.07_r, 0.07_r, 0.49_r} });
+        lights_.push_back(light{ {1.5_r, 2.5_r, -1.5_r}, {0.07_r, 0.49_r, 0.071_r} });
+        lights_.push_back(light{ {0.0_r, 3.5_r, 0.0_r}, {0.21_r, 0.21_r, 0.35_r} });
     }
 
     const auto& get_things() const { return things_; }
