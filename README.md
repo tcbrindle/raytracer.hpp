@@ -64,3 +64,7 @@ and the image is rendered into a `std::vector`. Rather than compile-time paramet
 Generating the above 512x512 image at compile time took around 45 minutes with Clang 4.0 on my Macbook Pro. For comparison, the same code executing at run time takes less than half a second on the same machine, or somewhere in the region  of 6000x faster.
 
 Believe it or not, this is actually decent performance compared to compile-time raytracers which use template metaprogramming.
+
+## Licence ##
+
+The [original TypeScript version](https://github.com/Microsoft/TypeScriptSamples/issues/143) and this C++ translation are licenced under the Apache-2.0 licence.
