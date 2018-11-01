@@ -336,22 +336,16 @@ private:
     template <typename Scene>
     constexpr std::optional<intersection> get_intersections(const ray& ray_, const Scene& scene_) const
     {
-        auto closest = std::numeric_limits<real_t>::max();
-        // Workaround lack of constexpr copy/move assignment and operator->()
-        // in libstdc++ std::optional w/ GCC 7.1.
-        intersection closest_inter{};
+        auto closest_dist = std::numeric_limits<real_t>::max();
+        std::optional<intersection> closest_inter{};
 
         for (const auto& t : scene_.get_things()) {
-            auto inter = t.intersect(ray_);
-            if (inter && (*inter).dist < closest) {
-                closest = (*inter).dist;
-                closest_inter = *inter;
+            if (auto inter = t.intersect(ray_); inter && (*inter).dist < closest_dist) {
+                closest_dist = (*inter).dist;
+                closest_inter = std::move(inter);
             }
         }
 
-        if (closest == std::numeric_limits<real_t>::max()) {
-            return std::nullopt;
-        }
         return closest_inter;
     }
 
