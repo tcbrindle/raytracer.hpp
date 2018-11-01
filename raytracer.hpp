@@ -75,10 +75,13 @@ constexpr real_t floor(real_t val)
 
 constexpr real_t pow(real_t base, int iexp)
 {
+    real_t val{1.0};
+
     while (iexp-- > 0) {
-        base *= base;
+        val *= base;
     }
-    return base;
+
+    return val;
 }
 
 } // end namespace cmath
