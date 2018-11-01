@@ -7,7 +7,7 @@
 
  /*
   * TypeScript version copyright 2015-2017 Microsoft
-  * C++ translation copyright 2017 Tristan Brindle
+  * C++ translation copyright 2017-2018 Tristan Brindle
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -75,14 +75,10 @@ constexpr real_t floor(real_t val)
 
 constexpr real_t pow(real_t base, int iexp)
 {
-#ifdef HAVE_CONSTEXPR_STD_MATH
-    return std::pow(base, iexp);
-#else
     while (iexp-- > 0) {
         base *= base;
     }
     return base;
-#endif
 }
 
 } // end namespace cmath
