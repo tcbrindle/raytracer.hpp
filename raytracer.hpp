@@ -271,41 +271,21 @@ struct plane {
 };
 
 struct any_thing {
-private:
-    // Workaround for no capturing constexpr lambdas in Clang 4.0
-    struct intersect_visitor {
-        const any_thing* pself;
-        const ray& ray_;
-
-        template <typename Thing>
-        constexpr decltype(auto) operator()(const Thing& thing) const
-        {
-            return thing.intersect(pself, ray_);
-        }
-    };
-
-    struct normal_visitor {
-        const vec3& pos;
-
-        template <typename Thing>
-        constexpr decltype(auto) operator()(const Thing& thing) const
-        {
-            return thing.get_normal(pos);
-        }
-    };
-
-public:
     template <typename T>
     constexpr any_thing(T&& t) : item_(std::forward<T>(t)) {}
 
     constexpr std::optional<intersection> intersect(const ray& ray_) const
     {
-        return std::visit(intersect_visitor{this, ray_}, item_);
+        return std::visit([&](const auto& thing) -> decltype(auto) {
+            return thing.intersect(this, ray_);
+        }, item_);
     }
 
     constexpr vec3 get_normal(const vec3& pos) const
     {
-        return std::visit(normal_visitor{pos}, item_);
+        return std::visit([&](const auto& thing) -> decltype(auto) {
+            return thing.get_normal(pos);
+        }, item_);
     }
 
     constexpr const surface& get_surface() const
