@@ -139,6 +139,9 @@ struct color {
     static constexpr color black() { return {}; };
     static constexpr color background() { return black(); }
     static constexpr color default_color() { return black(); }
+
+	constexpr color operator + (const color & c) { return color{ r + c.r, g + c.g, b + c.b }; }
+	constexpr color operator * (const real_t val) { return color{ r * val, g * val, b * val }; }
 };
 
 constexpr color scale(real_t k, const color& v)
@@ -418,25 +421,45 @@ private:
         return col;
     }
 
-    constexpr vec3 get_point(int width, int height, int x, int y, const camera& cam) const
-    {
-        const auto recenterX =  (x - (width / 2.0)) / 2.0 / width;
-        const auto recenterY = -(y - (height / 2.0)) / 2.0 / height;
-        return norm(cam.forward + ((recenterX * cam.right) + (recenterY * cam.up)));
-    }
+	constexpr vec3 get_point(int width, int height, real_t x, real_t y, const camera& cam) const
+	{
+		const auto recenterX = (x - (width * 0.5)) * 0.5 / width;
+		const auto recenterY = -(y - (height * 0.5)) * 0.5 / height;
+		return norm(cam.forward + ((recenterX * cam.right) + (recenterY * cam.up)));
+	}
 
 public:
-    template <typename Scene, typename Canvas>
-    constexpr void render(const Scene& scene, Canvas& canvas, int width, int height) const
-    {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                const auto point = get_point(width, height, x, y, scene.get_camera());
-                const auto color = trace_ray({ scene.get_camera().pos, point }, scene, 0);
-                canvas.set_pixel(x, y, color);
-            }
-        }
-    }
+	template <typename Scene, typename Canvas>
+	constexpr void render(const Scene& scene, Canvas& canvas, int width, int height, bool anti_aliased = true) const
+	{
+		if (anti_aliased)
+		{
+			const real_t sin_phi_div_2(static_cast<real_t>(sin(3.14159265358979323846 * 0.25) * 0.5));
+			for (int y(0), x; y < height; y++) {
+				for (x = 0; x < width; x++) {
+					canvas.set_pixel(x, y, (
+						trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x), static_cast<real_t>(y), scene.get_camera()) }, scene, 0) + ((
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x - 0.5), static_cast<real_t>(y), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x + 0.5), static_cast<real_t>(y), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x), static_cast<real_t>(y - 0.5), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x), static_cast<real_t>(y + 0.5), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x - sin_phi_div_2), static_cast<real_t>(y - sin_phi_div_2), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x + sin_phi_div_2), static_cast<real_t>(y - sin_phi_div_2), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x - sin_phi_div_2), static_cast<real_t>(y + sin_phi_div_2), scene.get_camera()) }, scene, 0) +
+							trace_ray({ scene.get_camera().pos, get_point(width, height, static_cast<real_t>(x + sin_phi_div_2), static_cast<real_t>(y + sin_phi_div_2), scene.get_camera()) }, scene, 0)) * 0.125)) * 0.5);
+				}
+			}
+		}
+		else
+		{
+			for (int y(0), x; y < height; y++) {
+				for (x = 0; x < width; x++) {
+					canvas.set_pixel(x, y,
+						trace_ray({ scene.get_camera().pos, get_point(width, height, x, y, scene.get_camera()) }, scene, 0));
+				}
+			}
+		}
+	}
 };
 
 } // end namespace
