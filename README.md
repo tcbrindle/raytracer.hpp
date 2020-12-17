@@ -40,7 +40,7 @@ concept bool Scene() {
 }
 ```
 
-A `Canvas` is simpler, and basically just requires a `set_pixel(x, y, rt::color)` method. The file `compile_time.cpp` contains a scene (and canvas) using `std::array`s, while `run_time.cpp` is the same but uses `std::vector`s instead (to deliberately prevent compile-time evauation).
+A `Canvas` is simpler, and basically just requires a `set_pixel(x, y, rt::color)` method. The file `compile_time.cpp` contains a scene (and canvas) using `std::array`s, while `run_time.cpp` is the same but uses `std::vector`s instead (to deliberately prevent compile-time evaluation).
 
 A **`Thing`** is an object in the world. The header provides two types of `Thing`, namely a `sphere` and a `plane`. To avoid virtual functions, these are used polymorphically via an `any_thing` class, which is a wrapper around a `std::variant<sphere, plane>`. If you wish to define your own kind of `Thing` in a scene (for example a box), you'll need add it to the `any_thing` variant, and implement three member functions: `intersect()`, which tests whether a given ray interects with the Thing, `get_normal()` which returns the normal vector to the object at the given point, and `get_surface()` which returns the `surface` the object is made from. (Unfortunately, the interface for `intersect()` is slightly complicated by the need to return a pointer to an `any_thing` along with the intersection information, but it's fairly straightforward -- take a look at the code for the `sphere` and `plane` classes.)
 
